@@ -1,0 +1,148 @@
+_wandb:
+    value:
+        cli_version: 0.21.0
+        e:
+            2c0ccp5zqye9oheblp1rxgar4i36di47:
+                apple:
+                    ecpuCores: 4
+                    gpuCores: 40
+                    memoryGb: 64
+                    name: Apple M3 Max
+                    pcpuCores: 12
+                    ramTotalBytes: "68719476736"
+                args:
+                    - --config-name=train_pusht
+                cpu_count: 16
+                cpu_count_logical: 16
+                disk:
+                    /:
+                        total: "994662584320"
+                        used: "98059919360"
+                email: spradhan143as@gmail.com
+                executable: /opt/anaconda3/envs/lerobot_v2/bin/python3
+                host: Satyabratas-MacBook-Pro.local
+                memory:
+                    total: "68719476736"
+                os: macOS-15.5-arm64-arm-64bit
+                program: /Users/satyabrata/Desktop/projects/behaviour_transformer_policy/train.py
+                python: CPython 3.10.13
+                root: /Users/satyabrata/Desktop/projects/behaviour_transformer_policy/exp_local/2025.07.28/234122_pusht_train
+                startedAt: "2025-07-28T21:41:24.883940Z"
+                writerId: 2c0ccp5zqye9oheblp1rxgar4i36di47
+        m: []
+        python_version: 3.10.13
+        t:
+            "1":
+                - 1
+                - 41
+                - 49
+                - 50
+                - 51
+            "2":
+                - 1
+                - 41
+                - 49
+                - 50
+                - 51
+            "3":
+                - 16
+                - 18
+                - 61
+            "4": 3.10.13
+            "5": 0.21.0
+            "12": 0.21.0
+            "13": darwin-arm64
+action_ae:
+    value:
+        _target_: models.action_ae.discretizers.k_means.KMeansDiscretizer
+        action_dim: 2
+        device: mps
+        num_bins: 24
+        predict_offsets: true
+batch_size:
+    value: 32
+betas:
+    value:
+        - 0.9
+        - 0.95
+data_parallel:
+    value: false
+device:
+    value: mps
+encoder:
+    value:
+        _target_: torch.nn.Identity
+        output_dim: 2
+env:
+    value:
+        action_dim: 2
+        action_max: null
+        action_min: null
+        dataset_fn:
+            _target_: dataloaders.trajectory_loader.get_pusht_train_val
+            dataset_path: lerobot/pusht
+            window_size: 6
+        load_dir: /Users/satyabrata/Desktop/projects/BeT_robot_manipulation_kmode/exp_local/2025.07.27/224138_blockpush_train
+        name: PushT-v0
+        obs_dim: 2
+        workspace:
+            _target_: workspaces.push_t.PushTWorkspace
+env_vars:
+    value:
+        datasets:
+            carla_multipath_town04_merge: /path/to/datasets/carla_dataset
+            multimodal_push_fixed_target: /Users/satyabrata/Desktop/projects/BeT_robot_manipulation_kmode/bet/data/blockpush
+            pusht: lerobot/pusht
+            relay_kitchen: /path/to/datasets/relay_kitchen_dataset
+eval_every:
+    value: 1
+eval_prior_every:
+    value: 1
+experiment:
+    value: pusht_train
+grad_norm_clip:
+    value: 1
+lazy_init_models:
+    value: true
+lr:
+    value: 0.0001
+num_prior_epochs:
+    value: 10
+num_training_epochs:
+    value: 1
+num_workers:
+    value: 8
+optim:
+    value: Adam
+project:
+    value: behavior_transformer_repro_test
+save_every:
+    value: 1
+save_latents:
+    value: false
+save_path:
+    value: /Users/satyabrata/Desktop/projects/behaviour_transformer_policy/exp_local/2025.07.28/234122_pusht_train
+save_prior_every:
+    value: 1
+seed:
+    value: 42
+state_prior:
+    value:
+        _target_: models.latent_generators.mingpt.MinGPT
+        action_dim: 2
+        block_size: 6
+        discrete_input: false
+        focal_loss_gamma: 2
+        input_dim: 2
+        n_embd: 72
+        n_head: 4
+        n_layer: 4
+        offset_loss_scale: 100000
+        predict_offsets: true
+        vocab_size: ???
+train_fraction:
+    value: 0.95
+weight_decay:
+    value: 0.1
+window_size:
+    value: 6

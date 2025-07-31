@@ -1,0 +1,2 @@
+[2025-07-28 23:41:22,955][datasets][INFO] - PyTorch version 2.7.1 available.
+[2025-07-28 23:42:02,815][models.libraries.mingpt.model][INFO] - number of parameters: 2.585520e+05

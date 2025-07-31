@@ -1,0 +1,5 @@
+datasets:
+  carla_multipath_town04_merge: /path/to/datasets/carla_dataset
+  relay_kitchen: /path/to/datasets/relay_kitchen_dataset
+  multimodal_push_fixed_target: /Users/satyabrata/Desktop/projects/BeT_robot_manipulation_kmode/bet/data/blockpush
+  pusht: lerobot/pusht

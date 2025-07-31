@@ -1,0 +1,75 @@
+/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/torch/utils/data/dataloader.py:683: UserWarning: 'pin_memory' argument is set as true but not supported on MPS now, then device pinned memory won't be used.
+  warnings.warn(warn_msg)
+K-means clustering: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 50/50 [00:00<00:00, 117.74it/s]
+[2025-07-28 23:39:24,901][models.libraries.mingpt.model][INFO] - number of parameters: 2.585520e+05
+Training prior epoch 0: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 762/762 [00:45<00:00, 16.68it/s]
+Training prior: :   0%|                                                                                                                                                                                     | 0/10 [01:02<?, ?it/s]
+Error executing job with overrides: []
+An error occurred during Hydra's exception formatting:
+TypeError("print_exception() got an unexpected keyword argument 'etype'")
+Traceback (most recent call last):
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/_internal/utils.py", line 283, in run_and_report
+    print_exception(etype=None, value=ex, tb=final_tb)  # type: ignore
+TypeError: print_exception() got an unexpected keyword argument 'etype'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/satyabrata/Desktop/projects/behaviour_transformer_policy/train.py", line 306, in <module>
+    main()
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/main.py", line 48, in decorated_main
+    _run_hydra(
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/_internal/utils.py", line 377, in _run_hydra
+    run_and_report(
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/_internal/utils.py", line 294, in run_and_report
+    raise ex
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/_internal/utils.py", line 211, in run_and_report
+    return func()
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/_internal/utils.py", line 378, in <lambda>
+    lambda: hydra.run(
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/_internal/hydra.py", line 111, in run
+    _ = ret.return_value
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/core/utils.py", line 233, in return_value
+    raise self._return_value
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/core/utils.py", line 160, in run_job
+    ret.return_value = task_function(task_cfg)
+  File "/Users/satyabrata/Desktop/projects/behaviour_transformer_policy/train.py", line 302, in main
+    workspace.run()
+  File "/Users/satyabrata/Desktop/projects/behaviour_transformer_policy/train.py", line 200, in run
+    self.eval_prior() # evaluate the Prior model
+  File "/Users/satyabrata/Desktop/projects/behaviour_transformer_policy/train.py", line 160, in eval_prior
+    self.log_append("prior_eval", len(observations), loss_components)
+NameError: name 'observations' is not defined
+Traceback (most recent call last):
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/_internal/utils.py", line 283, in run_and_report
+    print_exception(etype=None, value=ex, tb=final_tb)  # type: ignore
+TypeError: print_exception() got an unexpected keyword argument 'etype'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/satyabrata/Desktop/projects/behaviour_transformer_policy/train.py", line 306, in <module>
+    main()
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/main.py", line 48, in decorated_main
+    _run_hydra(
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/_internal/utils.py", line 377, in _run_hydra
+    run_and_report(
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/_internal/utils.py", line 294, in run_and_report
+    raise ex
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/_internal/utils.py", line 211, in run_and_report
+    return func()
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/_internal/utils.py", line 378, in <lambda>
+    lambda: hydra.run(
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/_internal/hydra.py", line 111, in run
+    _ = ret.return_value
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/core/utils.py", line 233, in return_value
+    raise self._return_value
+  File "/opt/anaconda3/envs/lerobot_v2/lib/python3.10/site-packages/hydra/core/utils.py", line 160, in run_job
+    ret.return_value = task_function(task_cfg)
+  File "/Users/satyabrata/Desktop/projects/behaviour_transformer_policy/train.py", line 302, in main
+    workspace.run()
+  File "/Users/satyabrata/Desktop/projects/behaviour_transformer_policy/train.py", line 200, in run
+    self.eval_prior() # evaluate the Prior model
+  File "/Users/satyabrata/Desktop/projects/behaviour_transformer_policy/train.py", line 160, in eval_prior
+    self.log_append("prior_eval", len(observations), loss_components)
+NameError: name 'observations' is not defined
