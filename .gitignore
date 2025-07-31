@@ -1,0 +1,6 @@
+__pycache__
+.vscode/
+*.pyc
+.DS_Store
+*.npy
+*.log
