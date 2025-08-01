@@ -141,7 +141,7 @@ class MinGPT(latent_generator.AbstractLatentGenerator):
             logits = einops.rearrange(
                 logits, "batch seq classes -> seq batch classes"
             )  # ? N, T order? Anyway does not affect loss and training (might affect visualization)
-            if return_loss_components:
+            if return_loss_components: # True in our case
                 return logits, loss, {"class": loss, "total": loss}
             else:
                 return logits, loss

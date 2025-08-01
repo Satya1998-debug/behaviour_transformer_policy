@@ -7,6 +7,7 @@ import einops
 import numpy as np
 import torch
 import torch.nn as nn
+import math
 
 from torch.utils.data import random_split
 import wandb
@@ -120,7 +121,7 @@ class SaveModule(nn.Module):
 
 
 def split_datasets(dataset, train_fraction=0.95, random_seed=42):
-    dataset_length = len(dataset)
+    dataset_length = len(dataset) # number of samples, here each sample is a frame
     lengths = [
         int(train_fraction * dataset_length),
         dataset_length - int(train_fraction * dataset_length),
@@ -129,3 +130,29 @@ def split_datasets(dataset, train_fraction=0.95, random_seed=42):
         dataset, lengths, generator=torch.Generator().manual_seed(random_seed)
     )
     return train_set, val_set
+
+def split_episodewise_datasets(full_dataset, train_fraction, random_seed):
+    try:
+        num_episodes = len(full_dataset.episode_data_index["from"])
+    except AttributeError:
+        # Fallback: if PushTrajectoryDataset is used instead, treat each trajectory as an episode
+        num_episodes = len(full_dataset)
+
+    episode_ids = list(range(num_episodes))
+    # random.Random(random_seed).shuffle(episode_ids)
+    split_idx = int(len(episode_ids) * train_fraction)
+    train_eps = episode_ids[:split_idx]
+    val_eps = episode_ids[split_idx:]
+    return train_eps, val_eps
+
+def split_dataset_episodewise_with_frame(full_dataset, train_fraction=0.95):
+    if full_dataset is not None:
+        tot_eps = full_dataset.num_episodes
+
+    boundary_eps = math.ceil(tot_eps * train_fraction) # after this episode, the test set will start
+    boundary_fr = full_dataset.episode_data_index["from"][boundary_eps].item() #
+
+    train_set = torch.utils.data.Subset(full_dataset, list(range(0, boundary_fr)))
+    test_set = torch.utils.data.Subset(full_dataset, list(range(boundary_fr, full_dataset.num_frames)))
+
+    return train_set, test_set

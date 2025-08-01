@@ -13,7 +13,7 @@ seed: 42
 load_dir: ${env.load_dir}
 
 # Length of history
-window_size: 3
+window_size: 6
 
 # Environment running setup
 num_eval_eps: 100

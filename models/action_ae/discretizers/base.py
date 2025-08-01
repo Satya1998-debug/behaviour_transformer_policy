@@ -16,7 +16,7 @@ class AbstractDiscretizer(AbstractActionAE, TrainWithLogger):
     Abstract discretizer class that defines the interface for action discretization.
     """
 
-    def fit_model(
+    def fit_model(  # this is used once before the training starts i.e. before the first epoch
         self,
         input_dataloader: DataLoader,
         eval_dataloader: DataLoader,
@@ -33,13 +33,14 @@ class AbstractDiscretizer(AbstractActionAE, TrainWithLogger):
         #     )  # N x T x action_dim
         
         
-        for batch in input_dataloader:
-            action = batch['action']
-            action_dim = action.shape[-1]
-            all_action_tensors.append(action.view(-1, action_dim))
-        all_action_tensors = torch.cat(all_action_tensors, dim=0)
+        for batch in input_dataloader: # each batch is flattend and concate
+            action = batch['action'] # shape: (batch, seq_len or window, action_dim) ex: (32, 6, 2)
+            action_dim = action.shape[-1] # 2 for pushT (motor1 and motor2 values)
+            all_action_tensors.append(action.view(-1, action_dim)) # flatten to (batch*seq_len, action_dim)
+        all_action_tensors = torch.cat(all_action_tensors, dim=0) # (total_samples, action_dim)
 
-        self.fit_discretizer(all_action_tensors)
+        self.fit_discretizer(all_action_tensors) # fit the discretizer to the data, 
+        # this above method is NOT implemented in AbstractDiscretizer, but will be implemented in the inheriting class: KMeansDiscretizer
 
     @abc.abstractmethod
     def fit_discretizer(self, input_actions: torch.Tensor) -> None:

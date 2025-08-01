@@ -13,6 +13,7 @@ from utils import (
     shuffle_along_axis,
     transpose_batch_timestep,
     split_datasets,
+    split_dataset_episodewise_with_frame,
     eval_mode,
 )
 from typing import Union, Callable, Optional
@@ -272,24 +273,18 @@ def get_pusht_train_val(dataset_path,
         train_set: Training dataset with trajectory slices.
         val_set: Validation dataset with trajectory slices.
     """
+    FPS = 10
 
-    delta_timestamps = {
-        "observation.state": [-1.5, -1, -0.5, -0.20, -0.10, 0],  # (6, c); c is the dimension of the state space
-        "action": [-1.5, -1, -0.5, -0.20, -0.10, 0],  # (6, c); c is the dimension of the action space
-    }
-
-    pust_dataset = PushTDataset(train_fraction=train_fraction, 
+    push_dataset = PushTDataset(train_fraction=train_fraction, 
                                 dataset_path=dataset_path,
                                 random_seed=random_seed, 
                                 device=device, 
                                 window_size=window_size,
-                                delta_timestamps=delta_timestamps)
-    pust_dataset.setup()
-    # Get the train and validation datasets
-    # This will return the train and validation datasets as per the split defined in PushTDataset
-    # train_data_loader = pust_dataset.get_dataloader("train")
-    # val_data_loader = pust_dataset.get_dataloader("val")
-    train_dataset, test_dataset = pust_dataset.get_dataset()
+                                fps=FPS)
+    push_dataset.setup()
+    # Get the train and test datasets
+    # This will return the train and test datasets as per the split defined in PushTDataset
+    train_dataset, test_dataset = push_dataset.get_dataset()
     return train_dataset, test_dataset
 
 class PushTDataset(TensorDataset):
@@ -299,33 +294,47 @@ class PushTDataset(TensorDataset):
                  window_size: int = 6,
                  batch_size: int = 32,
                  num_workers: int = 8, 
-                 delta_timestamps: Optional[dict] = None, 
                  device: torch.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu"),
+                 fps: int = 10,
     ):
         self.dataset_path = dataset_path
         self.train_fraction = train_fraction
         self.random_seed = random_seed
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.delta_timestamps = delta_timestamps
         self.device = device
         self.window_size = window_size
+        self.fps = fps
 
         self.dataset = None
         self.train_set = None
         self.test_set = None
 
     def setup(self):
+        # sets the delta timestamps for the observations and actions,(window_size - 1) samples from past and 1 current sample
+        self.delta_timestamps = {
+            "observation.state": [- t / self.fps for t in range(self.window_size)],  # (6, c); c is the dimension of the state space, window size is 6
+            "action": [- t / self.fps for t in range(self.window_size)],  # (6, c); c is the dimension of the action space, window size is 6
+        }
         # Load the full dataset
         self.dataset = LeRobotDataset(self.dataset_path, delta_timestamps=self.delta_timestamps)
         self.dataset.video_backend = "pyav"  # Avoid TorchCodec issues
 
-        # Split dataset into train and test
-        self.train_set, self.test_set = split_datasets(
-            self.dataset,
-            train_fraction=self.train_fraction,
-            random_seed=self.random_seed,
-        )
+        # split the datasets based on episodes, some episodes are used for training and some for validation
+        self.train_set, self.test_set = split_dataset_episodewise_with_frame(self.dataset, train_fraction=self.train_fraction)
+
+        # # Create split datasets by restricting to episodes
+        # self.train_set = LeRobotDataset(
+        #     self.dataset_path,
+        #     delta_timestamps=self.delta_timestamps,
+        # )
+        # self.train_set.video_backend = "pyav"
+
+        # self.test_set = LeRobotDataset(
+        #     self.dataset_path,
+        #     delta_timestamps=self.delta_timestamps,
+        # )
+        # self.test_set.video_backend = "pyav"
 
     # TODO: NOT used for now
     def get_dataloader(self, split: str = "train", shuffle: bool = True) -> DataLoader:

@@ -67,8 +67,8 @@ class Workspace:
                 self.cfg.action_ae, _recursive_=False
             ).to(self.device)
 
-            if self.cfg.data_parallel:  # not used
-                self.action_ae = GeneratorDataParallel(self.action_ae)
+            # if self.cfg.data_parallel:  # not used as we dont have multiple GPUs
+            #     self.action_ae = GeneratorDataParallel(self.action_ae)
 
     def _init_obs_encoding_net(self):
         if self.obs_encoding_net is None:  # possibly already initialized from snapshot
@@ -100,8 +100,9 @@ class Workspace:
             self.train_set,
             batch_size=self.cfg.batch_size,
             shuffle=True,
+            drop_last=True,
             num_workers=self.cfg.num_workers,
-            pin_memory=True,
+            pin_memory=True if self.device.type == "cuda" else False,  # in MPS, pin memory is not supported
         )
 
         self.test_loader = DataLoader(
@@ -109,30 +110,24 @@ class Workspace:
             batch_size=self.cfg.batch_size,
             shuffle=False,
             num_workers=self.cfg.num_workers,
-            pin_memory=True,
+            pin_memory=True if self.device.type == "cuda" else False,  # in MPS, pin memory is not supported
+            # drop_last=True
         )
 
-        # self.latent_collection_loader = DataLoader(
-        #     self.train_set,
-        #     batch_size=self.cfg.batch_size,
-        #     shuffle=False,
-        #     num_workers=self.cfg.num_workers,
-        #     pin_memory=True,
-        # )
-
     def train_prior(self):
-        self.state_prior.train()
-        with utils.eval_mode(self.obs_encoding_net, self.action_ae):
-            pbar = tqdm.tqdm(
-                self.train_loader, desc=f"Training prior epoch {self.prior_epoch}"
-            )
-            for batch in pbar:
+        try:
+            self.state_prior.train()
+            with utils.eval_mode(self.obs_encoding_net, self.action_ae):
+                pbar = tqdm.tqdm(
+                    self.train_loader, desc=f"Training prior epoch {self.prior_epoch}"
+                )
+            for batch in pbar: # looping batches from the train_loader
                 observations, action = batch['observation.state'], batch['action']
                 self.state_prior_optimizer.zero_grad(set_to_none=True)
                 obs, act = observations.to(self.device), action.to(self.device)
                 enc_obs = self.obs_encoding_net(obs)  # does nothing, only identity operation
                 latent = self.action_ae.encode_into_latent(act, enc_obs)
-                _, loss, loss_components = self.state_prior.get_latent_and_loss(
+                _, loss, loss_components = self.state_prior.get_latent_and_loss( # return total loss and loss components(class + total)
                     obs_rep=enc_obs,
                     target_latents=latent,
                     return_loss_components=True,
@@ -143,79 +138,97 @@ class Workspace:
                 )
                 self.state_prior_optimizer.step()
                 self.log_append("prior_train", len(observations), loss_components)
+        
+        except Exception as e:
+            logging.exception("Exception during training in train_prior(): %s", e)
+            self.wandb_run.finish()
+            raise e
 
     def eval_prior(self):
-        with utils.eval_mode(
-            self.obs_encoding_net, self.action_ae, self.state_prior, no_grad=True
-        ):
-            for batch in self.test_loader:
-                obs, act = batch['observation.state'].to(self.device), batch['action'].to(self.device)
-                enc_obs = self.obs_encoding_net(obs)
-                latent = self.action_ae.encode_into_latent(act, enc_obs)
-                _, loss, loss_components = self.state_prior.get_latent_and_loss(
-                    obs_rep=enc_obs,
-                    target_latents=latent,
-                    return_loss_components=True,
-                )
-                self.log_append("prior_eval", len(obs), loss_components)
+        try:
+            with utils.eval_mode(
+                self.obs_encoding_net, self.action_ae, self.state_prior, no_grad=True
+            ):
+                for batch in self.test_loader:
+                    obs, act = batch['observation.state'].to(self.device), batch['action'].to(self.device)
+                    enc_obs = self.obs_encoding_net(obs)
+                    latent = self.action_ae.encode_into_latent(act, enc_obs)
+                    _, loss, loss_components = self.state_prior.get_latent_and_loss(
+                        obs_rep=enc_obs,
+                        target_latents=latent,
+                        return_loss_components=True,
+                    )
+
+                    self.log_append("prior_eval", len(obs), loss_components)
+
+        except Exception as e:
+            logging.exception("Exception during evaluation in eval_prior(): %s", e)
+            self.wandb_run.finish()
+            raise e
+
 
     def run(self):
-        snapshot = self.snapshot
-        if snapshot.exists():
-            print(f"Resuming: {snapshot}")
-            self.load_snapshot()
+        try:
+            snapshot = self.snapshot
+            if snapshot.exists():
+                print(f"Resuming: {snapshot}")
+                self.load_snapshot()
 
-        if self.cfg.lazy_init_models:
-            self._init_obs_encoding_net() # initialize observation encoding
-            self._init_action_ae() # initialize action autoencoder
+            if self.cfg.lazy_init_models:
+                self._init_obs_encoding_net() # initialize observation encoding
+                self._init_action_ae() # initialize action autoencoder
 
-        self.action_ae.fit_model(  # train the action autoencoder
-            self.train_loader,
-            self.test_loader,
-            self.obs_encoding_net,
-        )
-        # if self.cfg.save_latents: # save the latents after training the autoencoder, but now its False
-        #     self.save_latents()
+            self.action_ae.fit_model(  # fit the action autoencoder, gets all actions and get clusters
+                self.train_loader,
+                self.test_loader,
+                self.obs_encoding_net,
+            )
+            # if self.cfg.save_latents: # save the latents after training the autoencoder, but now its False
+            #     self.save_latents()
 
-        # Train the action prior model.
-        if self.cfg.lazy_init_models:
-            self._init_state_prior()
+            # Train the action prior model.
+            if self.cfg.lazy_init_models:
+                self._init_state_prior()
 
-        self.state_prior_iterator = tqdm.trange(
-            self.prior_epoch, self.cfg.num_prior_epochs
-        )
-        self.state_prior_iterator.set_description("Training prior: ")
+            self.state_prior_iterator = tqdm.trange(
+                self.prior_epoch, self.cfg.num_prior_epochs
+            )
+            self.state_prior_iterator.set_description("Training prior: ")
 
-        # Reset the log.
-        self.log_components = OrderedDict()
+            # Reset the log.
+            self.log_components = OrderedDict()
 
-        for epoch in self.state_prior_iterator:
-            self.prior_epoch = epoch
+            for epoch in self.state_prior_iterator:
+                self.prior_epoch = epoch
 
-            # train the Prior model
-            self.train_prior()
+                # train the Prior model
+                self.train_prior()
 
-            # evaluate the Prior model every `eval_prior_every` epochs
-            if ((self.prior_epoch + 1) % self.cfg.eval_prior_every) == 0:
-                self.eval_prior() # evaluate the Prior model
+                # evaluate the Prior model every `eval_prior_every` epochs
+                if ((self.prior_epoch + 1) % self.cfg.eval_prior_every) == 0:
+                    self.eval_prior() # evaluate the Prior model
 
-            self.flush_log(epoch=epoch + self.epoch, iterator=self.state_prior_iterator)
-            self.prior_epoch += 1
+                self.flush_log(epoch=epoch + self.epoch, iterator=self.state_prior_iterator)
+                self.prior_epoch += 1
 
-            # save the snapshot every `save_prior_every` epochs
-            if ((self.prior_epoch + 1) % self.cfg.save_prior_every) == 0:
-                self.save_snapshot()
+                # save the snapshot every `save_prior_every` epochs
+                if ((self.prior_epoch + 1) % self.cfg.save_prior_every) == 0:
+                    self.save_snapshot()
 
-        # expose DataParallel module class name for wandb tags
-        tag_func = (
-            lambda m: m.module.__class__.__name__
-            if self.cfg.data_parallel
-            else m.__class__.__name__
-        )
-        tags = tuple(
-            map(tag_func, [self.obs_encoding_net, self.action_ae, self.state_prior])
-        )
-        self.wandb_run.tags += tags
+            # expose DataParallel module class name for wandb tags
+            tag_func = (
+                lambda m: m.module.__class__.__name__
+                if self.cfg.data_parallel
+                else m.__class__.__name__
+            )
+            tags = tuple(
+                map(tag_func, [self.obs_encoding_net, self.action_ae, self.state_prior])
+            )
+            self.wandb_run.tags += tags
+        except Exception as e:
+            logging.exception("Exception during training in run(): %s", e)
+            self.wandb_run.finish()
+            raise e
 
     @property
     def snapshot(self):

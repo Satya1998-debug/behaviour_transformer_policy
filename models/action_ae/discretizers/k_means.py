@@ -26,13 +26,14 @@ class KMeansDiscretizer(AbstractDiscretizer):
         self.predict_offsets = predict_offsets
 
     def fit_discretizer(self, input_actions: torch.Tensor) -> None:
+        # gives the cluster centers for the input actions, all actions are needed to get the clusters
         assert (
-            self.action_dim == input_actions.shape[-1]
+            self.action_dim == input_actions.shape[-1] # 2 for pushT (motor1 and motor2 values)
         ), f"Input action dimension {self.action_dim} does not match fitted model {input_actions.shape[-1]}"
 
         flattened_actions = input_actions.view(-1, self.action_dim)
         cluster_centers = KMeansDiscretizer._kmeans(
-            flattened_actions, ncluster=self.n_bins
+            flattened_actions, ncluster=self.n_bins # number of bin == number of clusters
         )
         self.bin_centers = cluster_centers.to(self.device)
 
@@ -67,7 +68,7 @@ class KMeansDiscretizer(AbstractDiscretizer):
             c[nanix] = x[torch.randperm(N)[:ndead]]  # re-init dead clusters
         return c
 
-    def encode_into_latent(
+    def encode_into_latent( # this is used during training for every batch in each epoch
         self, input_action: torch.Tensor, input_rep: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """
