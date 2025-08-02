@@ -10,12 +10,13 @@ def main(cfg):
     # without using nested instantiation from hydra
     # workspace = hydra.utils.instantiate(cfg.env.workspace, cfg=cfg, _recursive_=False)
     workspace = Workspace(cfg)
-    workspace.run()
-    rewards, infos = workspace.run()
-    print(rewards)
-    print(infos)
-    print(f"Average reward: {np.mean(rewards)}")
-    print(f"Std: {np.std(rewards)}")
+    acc = workspace.evaluate_action_prediction()
+    # rewards, infos = workspace.run()
+    # print(rewards)
+    # print(infos)
+    # print(f"Average reward: {np.mean(rewards)}")
+    # print(f"Std: {np.std(rewards)}")
+    print("ACCURACY: ", acc)
 
 
 if __name__ == "__main__":

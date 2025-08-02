@@ -15,6 +15,11 @@ load_dir: ${env.load_dir}
 # Length of history
 window_size: 6
 
+# testing details
+train_fraction: 0.95
+test_batch_size: 1
+test_num_workers: 8
+
 # Environment running setup
 num_eval_eps: 100
 action_batch_size: 1
@@ -22,7 +27,7 @@ num_eval_steps: 300
 use_state_prior: True
 enable_offsets: True
 action_update_every: 1
-flatten_obs: True
+flatten_obs: False
 enable_render: False
 
 # Plotting setup

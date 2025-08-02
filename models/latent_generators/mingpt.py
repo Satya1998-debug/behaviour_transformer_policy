@@ -149,7 +149,7 @@ class MinGPT(latent_generator.AbstractLatentGenerator):
     def generate_latents(
         self, seq_obses: torch.Tensor, seq_masks: torch.Tensor
     ) -> torch.Tensor:
-        seq, batch, embed = seq_obses.size()
+        seq, batch, embed = seq_obses.size() # embed = dim of observation which is same as actions in this case
         obs_rep = einops.rearrange(seq_obses, "seq batch embed -> batch seq embed")
         output, _ = self.model(obs_rep, None)
         if self.predict_offsets:
@@ -164,7 +164,7 @@ class MinGPT(latent_generator.AbstractLatentGenerator):
         else:
             logits = output
         probs = F.softmax(logits, dim=-1)
-        batch, seq, choices = probs.shape
+        batch, seq, choices = probs.shape # choices = clusters
         # Sample from the multinomial distribution, one per row.
         sampled_data = torch.multinomial(probs.view(-1, choices), num_samples=1)
         sampled_data = einops.rearrange(

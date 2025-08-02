@@ -323,19 +323,6 @@ class PushTDataset(TensorDataset):
         # split the datasets based on episodes, some episodes are used for training and some for validation
         self.train_set, self.test_set = split_dataset_episodewise_with_frame(self.dataset, train_fraction=self.train_fraction)
 
-        # # Create split datasets by restricting to episodes
-        # self.train_set = LeRobotDataset(
-        #     self.dataset_path,
-        #     delta_timestamps=self.delta_timestamps,
-        # )
-        # self.train_set.video_backend = "pyav"
-
-        # self.test_set = LeRobotDataset(
-        #     self.dataset_path,
-        #     delta_timestamps=self.delta_timestamps,
-        # )
-        # self.test_set.video_backend = "pyav"
-
     # TODO: NOT used for now
     def get_dataloader(self, split: str = "train", shuffle: bool = True) -> DataLoader:
         if split == "train":
