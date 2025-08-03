@@ -184,3 +184,6 @@ Even though there are multiple cases that have been trained and evaluated, howev
 ![Training and Validation Loss for 50 (but stopped manually at 46th)](plots/vital_shadow.png)
 ![Training and Validation Loss for optimzed 19 Epochs after previous evaluation](plots/silver_star.png)
 ![Training vs Validation Loss trade-off for 50 Epochs (but stopped manually at 46th)](plots/eval_train_loss.png)
+
+
+**The model is at very basic level of implementation, therefore it will need improvement. I hope you like it!!**
