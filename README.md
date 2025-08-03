@@ -177,3 +177,10 @@ All info can be found in the [full report](report.md).
 
 ### Demo Video
 ![Demo-video](plots/demo_robo.gif)
+
+
+Even though there are multiple cases that have been trained and evaluated, however few of them has been depocted here for viewing.
+
+![Training and Validation Loss for 50 (but stopped manually at 46th)](plots/vital_shadow.png)
+![Training and Validation Loss for optimzed 19 Epochs after previous evaluation](plots/silver_star.png)
+![Training vs Validation Loss trade-off for 50 Epochs (but stopped manually at 46th)](plots/eval_train_loss.png)
