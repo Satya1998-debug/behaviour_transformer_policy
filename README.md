@@ -167,6 +167,7 @@ exp_local/{date}/{time}_pusht_eval/rl-video-episode...mp4
 ## 📊🎯 Results, Findings and Discussions
 
 The implementation, design choices, results and possible improvements have been discussed in see the [full report](report.md).
+
 ---
 
 ## 📜 Acknowledgements
