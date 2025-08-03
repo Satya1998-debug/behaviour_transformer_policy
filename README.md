@@ -71,7 +71,7 @@ The Modified BeT policy consists of:
 - Improves precision over coarse discretization
 
 
-```text
+```bash
 .
 ├── README.md
 ├── enviroment.yml
