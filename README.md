@@ -1,6 +1,6 @@
 # Modified Behavior Transformer (BeT) for PushT in LeRobot
 
-This repository contains a **modified Behavior Transformer (BeT)** integrated with the [🤗 LeRobot](https://github.com/huggingface/lerobot) framework, trained and evaluated on the **PushT** robotic manipulation task.
+This repository contains a **modified Behavior Transformer (BeT)** integrated with the [LeRobot](https://github.com/huggingface/lerobot) framework, trained and evaluated on the **PushT** robotic manipulation task. The original BeT from this paper ["Behavior Transformers: Cloning k modes with one stone"](https://arxiv.org/abs/2206.11251) has been adapted and modified for the PushT data usecase and implemented.
 
 The modification adapts BeT to the `lerobot/pusht` dataset and environment, using a transformer-based policy with **action discretization** and **offset correction** to handle multi-modal continuous actions.
 
@@ -70,6 +70,51 @@ The Modified BeT policy consists of:
 - Learns residual between bin center and ground truth action
 - Improves precision over coarse discretization
 
+
+```text
+.
+├── README.md
+├── enviroment.yml
+├── requirements.txt
+├── bet/
+│   ├── train.py
+│   ├── run_on_env.py
+│   ├── workspaces/
+│   │   └── base.py
+│   ├── models/
+│   │   ├── latent_generators/
+│   │   │   └── mingpt.py
+│   │   ├── action_ae/
+│   │   │   ├── base.py
+│   │   │   └── kmeans.py
+│   │   └── policy.py
+│   ├── datasets/
+│   │   ├── pusht_datamodule.py
+│   │   └── utils.py
+│   ├── losses/
+│   ├── utils/
+│   └── logging.py
+├── configs/
+│   ├── config.yaml
+│   ├── train_pusht.yaml
+│   ├── eval_pusht.yaml
+│   ├── env/
+│   │   └── pusht.yaml
+│   ├── model/
+│   │   └── bet_prior.yaml
+│   └── hydra/
+├── scripts/
+│   └── visualize_dataset.sh
+├── outputs/
+│   ├── train/
+│   └── eval/
+└── third_party/
+    └── relay-policy-learning/
+
+```
+
+The most important files are the config yaml files and the train-test scripts, which are neede to execute the training and evaluation phases of the process.
+
 ---
 
 ## 🚀 Training
@@ -109,6 +154,19 @@ The evaluation inlcudes:
 - Runs the PushT environment in rollout mode
 - Computes success rate and task-specific metrics
 
+The actions and latents can be saved in terms of check points.
+
+The recorded videos of the Robot Manipulation are stored in (if recording flag is enabled):
+(apart from videos, other metadata is also stored)
+```lua
+exp_local/{date}/{time}_pusht_eval/rl-video-episode...mp4
+```
+
+---
+
+## 📊🎯 Results, Findings and Discussions
+
+The implementation, design choices, results and possible improvements have been discussed in see the [full report](report.md).
 ---
 
 ## 📜 Acknowledgements

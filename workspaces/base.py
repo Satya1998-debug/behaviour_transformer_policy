@@ -177,15 +177,7 @@ class Workspace:
                         enc_obs_seq,
                         torch.ones_like(enc_obs_seq).mean(dim=-1),
                     )
-                    # For visualization, also get raw logits and offsets
-                    # placeholder_target = (
-                    #     torch.zeros_like(latents[0]),
-                    #     torch.zeros_like(latents[1]),
-                    # )
-                    # (
-                    #     logits_to_save,
-                    #     offsets_to_save,
-                    # ), _ = self.state_prior.get_latent_and_loss(enc_obs_seq, placeholder_target)
+
                     logits_to_save, offsets_to_save = None, None
 
                     offsets = None
@@ -239,23 +231,11 @@ class Workspace:
                 reward, obses, actions, latents, info = self.run_single_episode()
                 rewards.append(reward)
                 infos.append(info)
-                # torch.save(actions, Path.cwd() / f"actions_{i}.pth")
-                # torch.save(latents, Path.cwd() / f"latents_{i}.pth")
+                torch.save(actions, Path.cwd() / f"actions_{i}.pth")
+                torch.save(latents, Path.cwd() / f"latents_{i}.pth")
             self.env.close()
             logging.info(rewards)
             logging.info(infos)
-
-            # Get the speed of environment (i.e. its number of frames per second).
-            # fps = self.env.metadata["render_fps"]
-            # # Keep track of all the rewards and frames
-            # frames.append(self.env.render())
-            # output_directory = Path("outputs/eval/example_pusht")
-            # output_directory.mkdir(parents=True, exist_ok=True)
-            # # Encode all frames into a mp4 video.
-            # video_path = output_directory / "rollout_test.mp4"
-            # imageio.mimsave(str(video_path), np.stack(frames), fps=fps)
-
-            # print(f"Video of the evaluation is available in '{video_path}'.")
 
             return rewards, infos
         except Exception as e:
