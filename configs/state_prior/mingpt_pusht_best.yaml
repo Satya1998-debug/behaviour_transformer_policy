@@ -6,9 +6,9 @@ input_dim: ${encoder.output_dim}
 vocab_size: ???  # TBD by the discretization model.
 
 # Architecture details
-n_layer: 4
-n_head: 4
-n_embd: 72
+n_layer: 6
+n_head: 6
+n_embd: 120
 
 block_size: ${window_size}  # Length of history/context
 predict_offsets: True

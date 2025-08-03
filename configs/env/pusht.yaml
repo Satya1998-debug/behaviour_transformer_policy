@@ -4,7 +4,7 @@ action_dim: 2
 action_min: null
 action_max: null
 
-load_dir: "/Users/satyabrata/Desktop/projects/behaviour_transformer_policy/exp_local/2025.08.01/182203_pusht_train"
+load_dir: "/Users/satyabrata/Desktop/projects/behaviour_transformer_policy/exp_local/2025.08.02/230406_pusht_train"
 
 workspace:  # This is the workspace for the PushT environment
   _target_: workspaces.push_t.PushTWorkspace

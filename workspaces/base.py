@@ -4,80 +4,79 @@ from pathlib import Path
 
 import einops
 import gymnasium as gym
+from gymnasium.wrappers import RecordVideo
 import hydra
 import numpy as np
-from numpy import linalg as LA
 import torch
 from models.action_ae.generators.base import GeneratorDataParallel
 from models.latent_generators.latent_generator import LatentGeneratorDataParallel
 import utils
 import wandb
-from torch.utils.data import DataLoader
+import gym_pusht
 
 
 class Workspace:
     def __init__(self, cfg):
-        self.work_dir = Path.cwd()
-        print("Saving to {}".format(self.work_dir))
-        self.cfg = cfg
-        self.device = torch.device(cfg.device)
-        utils.set_seed_everywhere(cfg.seed)
-        self.helper_procs = []
+        try:
+            self.work_dir = Path.cwd()
+            print("Saving to {}".format(self.work_dir))
+            self.cfg = cfg
+            self.device = torch.device(cfg.device)
+            utils.set_seed_everywhere(cfg.seed)
+            self.helper_procs = []
 
-        self.test_loader = None # for loading test dataset
+            self.env = gym.make("gym_pusht/PushT-v0", max_episode_steps=300)
+            if cfg.record_video:
+                self.env = RecordVideo(
+                    self.env,
+                    video_folder=self.work_dir,
+                    episode_trigger=lambda x: x % 10 == 0,
+                )
 
-        self.dataset = hydra.utils.call(  # calling dataset loader function using Hydra and passing all the necessary arguments
-            cfg.env.dataset_fn,
-            train_fraction=cfg.train_fraction,
-            random_seed=cfg.seed,
-            device=self.device,
-        )
+            # Create the model
+            self.action_ae = None
+            self.obs_encoding_net = None
+            self.state_prior = None
+            if not self.cfg.lazy_init_models:
+                self._init_action_ae()
+                self._init_obs_encoding_net()
+                self._init_state_prior()
 
+            wandb.init(dir=self.work_dir, project=cfg.project, config=cfg._content)
+            self.epoch = 0
+            self.load_snapshot()
 
-        self.train_set, self.test_set = self.dataset # get train and test sets
-        self._setup_loaders() # setup data loaders for training and testing
+            # Set up history archival.
+            self.window_size = cfg.window_size
+            self.history = deque(maxlen=self.window_size)
+            self.last_latents = None
 
-        # self.env = gym.make(cfg.env.name)
+            if self.cfg.flatten_obs:
+                self.env = gym.wrappers.FlattenObservation(self.env)
 
-        # Create the model
-        self.action_ae = None
-        self.obs_encoding_net = None
-        self.state_prior = None
-        if not self.cfg.lazy_init_models:
-            self._init_action_ae()
-            self._init_obs_encoding_net()
-            self._init_state_prior()
+            if self.cfg.plot_interactions:
+                self._setup_plots()
 
-        # wandb.init(dir=self.work_dir, project=cfg.project, config=cfg._content)
-        self.epoch = 0
-        self.load_snapshot() # load the snapshots
-
-        # Set up history archival.
-        self.window_size = cfg.window_size
-        self.history = deque(maxlen=self.window_size)
-        self.last_latents = None
-
-    def _setup_loaders(self):
-
-        self.test_loader = DataLoader(
-            self.test_set,
-            batch_size=self.cfg.test_batch_size,
-            shuffle=False,
-            num_workers=self.cfg.test_num_workers,
-            pin_memory=True if self.device.type == "cuda" else False,  # in MPS, pin memory is not supported
-            # drop_last=True
-        )
+            if self.cfg.start_from_seen:
+                self._setup_starting_state()
+        except Exception as e:
+            print("Exception occurred in init():", e)
+            raise e
 
     def _init_action_ae(self):
         if self.action_ae is None:  # possibly already initialized from snapshot
             self.action_ae = hydra.utils.instantiate(
                 self.cfg.action_ae, _recursive_=False
             ).to(self.device)
+            # if self.cfg.data_parallel:
+            #     self.action_ae = GeneratorDataParallel(self.action_ae)
 
     def _init_obs_encoding_net(self):
         if self.obs_encoding_net is None:  # possibly already initialized from snapshot
             self.obs_encoding_net = hydra.utils.instantiate(self.cfg.encoder)
             self.obs_encoding_net = self.obs_encoding_net.to(self.device)
+            if self.cfg.data_parallel:
+                self.obs_encoding_net = torch.nn.DataParallel(self.obs_encoding_net)
 
     def _init_state_prior(self):
         if self.state_prior is None:  # possibly already initialized from snapshot
@@ -86,7 +85,8 @@ class Workspace:
                 latent_dim=self.action_ae.latent_dim,
                 vocab_size=self.action_ae.num_latents,
             ).to(self.device)
-
+            # if self.cfg.data_parallel:
+            #     self.state_prior = LatentGeneratorDataParallel(self.state_prior)
             self.state_prior_optimizer = self.state_prior.get_optimizer(
                 learning_rate=self.cfg.lr,
                 weight_decay=self.cfg.weight_decay,
@@ -103,43 +103,52 @@ class Workspace:
         raise NotImplementedError
 
     def run_single_episode(self):
-        obs_history = []
-        action_history = []
-        latent_history = []
-        # obs = self.env.reset() # not needed, its just resets the flattened obs
-        last_obs = obs
-        if self.cfg.start_from_seen:
-            obs = self._start_from_known()
-        action, latents = self._get_action(obs, sample=True, keep_last_bins=False)
-        done = False
-        total_reward = 0
-        obs_history.append(obs)
-        action_history.append(action)
-        latent_history.append(latents)
-        for i in range(self.cfg.num_eval_steps):
-            # if self.cfg.plot_interactions:
-            #     self._plot_obs_and_actions(obs, action, done)
-            if done:
-                self._report_result_upon_completion()
-                break
-            # if self.cfg.enable_render:
-            #     self.env.render(mode="human")
-            obs, reward, done, info = self.env.step(action)
-            total_reward += reward
-            if obs is None:
-                obs = last_obs  # use cached observation in case of `None` observation
-            else:
-                last_obs = obs  # cache valid observation
-            keep_last_bins = ((i + 1) % self.cfg.action_update_every) != 0
-            action, latents = self._get_action(
-                obs, sample=True, keep_last_bins=keep_last_bins
-            )
+        try:
+            obs_history = []
+            action_history = []
+            latent_history = []
+            # Reset the policy and environments to prepare for rollout
+            obs_reset = self.env.reset()
+            obs = obs_reset[1]["pos_agent"]
+            last_obs = obs
+            if self.cfg.start_from_seen:
+                obs = self._start_from_known()
+            action, latents = self._get_action(obs, sample=True, keep_last_bins=False)
+            done = False
+            total_reward = 0
             obs_history.append(obs)
             action_history.append(action)
             latent_history.append(latents)
-        logging.info(f"Total reward: {total_reward}")
-        logging.info(f"Final info: {info}")
-        return total_reward, obs_history, action_history, latent_history, info
+            for i in range(self.cfg.num_eval_steps):
+                if self.cfg.plot_interactions:
+                    self._plot_obs_and_actions(obs, action, done)
+                if done:
+                    self._report_result_upon_completion()
+                    break
+                if self.cfg.enable_render:
+                    self.env.render(mode="human")
+                new_obs, reward, terminated, _, info = self.env.step(action)
+                obs = new_obs[:2] # first 2 are the robot position, rest 3 are block position
+                if terminated:
+                    done = True
+                total_reward += reward
+                if obs is None:
+                    obs = last_obs  # use cached observation in case of `None` observation
+                else:
+                    last_obs = obs  # cache valid observation
+                keep_last_bins = ((i + 1) % self.cfg.action_update_every) != 0
+                action, latents = self._get_action(
+                    obs, sample=True, keep_last_bins=keep_last_bins
+                )
+                obs_history.append(obs)
+                action_history.append(action)
+                latent_history.append(latents)
+            logging.info(f"Total reward: {total_reward}")
+            logging.info(f"Final info: {info}")
+            return total_reward, obs_history, action_history, latent_history, info
+        except Exception as e:
+            print("Exception occurred in run_single_episode():", e)
+            raise e
 
     def _report_result_upon_completion(self):
         pass
@@ -149,26 +158,34 @@ class Workspace:
         raise NotImplementedError
 
     def _get_action(self, obs, sample=False, keep_last_bins=False):
-        try: 
+        try:
             with utils.eval_mode(
                 self.action_ae, self.obs_encoding_net, self.state_prior, no_grad=True
             ):
-                # obs = torch.from_numpy(obs).float().to(self.cfg.device).unsqueeze(0)
-                enc_obs = self.obs_encoding_net(obs)  # encoded obs: # (batch, seq, dim=embed) (1 x 6 x 2)
-                # enc_obs = einops.repeat(
-                #     enc_obs, "obs -> batch obs", batch=self.cfg.test_batch_size
-                # )
+                obs = torch.from_numpy(obs).float().to(self.cfg.device).unsqueeze(0)
+                enc_obs = self.obs_encoding_net(obs).squeeze(0)
+                enc_obs = einops.repeat(
+                    enc_obs, "obs -> batch obs", batch=self.cfg.action_batch_size
+                )
                 # Now, add to history. This automatically handles the case where
                 # the history is full.
-                # self.history.append(enc_obs)
+                self.history.append(enc_obs)
                 if self.cfg.use_state_prior:
-                    enc_obs_seq = einops.rearrange(enc_obs, "batch seq embed -> seq batch embed").to(self.cfg.device)  # type: ignore
+                    enc_obs_seq = torch.stack(tuple(self.history), dim=0)  # type: ignore
                     # Sample latents from the prior
                     latents = self.state_prior.generate_latents(
                         enc_obs_seq,
                         torch.ones_like(enc_obs_seq).mean(dim=-1),
                     )
-                
+                    # For visualization, also get raw logits and offsets
+                    # placeholder_target = (
+                    #     torch.zeros_like(latents[0]),
+                    #     torch.zeros_like(latents[1]),
+                    # )
+                    # (
+                    #     logits_to_save,
+                    #     offsets_to_save,
+                    # ), _ = self.state_prior.get_latent_and_loss(enc_obs_seq, placeholder_target)
                     logits_to_save, offsets_to_save = None, None
 
                     offsets = None
@@ -182,8 +199,7 @@ class Workspace:
 
                     # Take the final action latent
                     if self.cfg.enable_offsets:
-                        action_latents = (latents[:, :, :], offsets[:, :, :])
-                        # action_latents = (latents[:, -1:, :], offsets[:, -1:, :])
+                        action_latents = (latents[:, -1:, :], offsets[:, -1:, :])
                     else:
                         action_latents = latents[:, -1:, :]
                 else:
@@ -199,35 +215,52 @@ class Workspace:
                     sampled_action = np.random.randint(len(actions))
                     actions = actions[sampled_action]
                     # (seq==1, action_dim), since batch dim reduced by sampling
-                    actions = einops.rearrange(actions, "seq action_dim -> 1 seq action_dim")
+                    actions = einops.rearrange(actions, "1 action_dim -> action_dim")
                 else:
                     # (batch, seq==1, action_dim)
                     actions = einops.rearrange(
-                        actions, "batch seq action_dim -> batch seq action_dim"
+                        actions, "batch 1 action_dim -> batch action_dim"
                     )
                 return actions, (logits_to_save, offsets_to_save, action_latents)
         except Exception as e:
-            logging.error(f"Error in _get_action: {e}")
+            print("Exception occurred in _get_actions():", e)
             raise e
 
     def run(self):
-        rewards = []
-        infos = []
-        if self.cfg.lazy_init_models: # initialize models
-            self._init_action_ae()
-            self._init_obs_encoding_net()
-            self._init_state_prior()
-        for i in range(self.cfg.num_eval_eps):
-            reward, obses, actions, latents, info = self.run_single_episode()
-            rewards.append(reward)
-            infos.append(info)
-            torch.save(actions, Path.cwd() / f"actions_{i}.pth")
-            torch.save(latents, Path.cwd() / f"latents_{i}.pth")
-            
-        self.env.close()
-        logging.info(rewards)
-        logging.info(infos)
-        return rewards, infos
+        try:
+            rewards = []
+            infos = []
+            # frames = []
+            if self.cfg.lazy_init_models:
+                self._init_action_ae()
+                self._init_obs_encoding_net()
+                self._init_state_prior()
+            for i in range(self.cfg.num_eval_eps):
+                reward, obses, actions, latents, info = self.run_single_episode()
+                rewards.append(reward)
+                infos.append(info)
+                # torch.save(actions, Path.cwd() / f"actions_{i}.pth")
+                # torch.save(latents, Path.cwd() / f"latents_{i}.pth")
+            self.env.close()
+            logging.info(rewards)
+            logging.info(infos)
+
+            # Get the speed of environment (i.e. its number of frames per second).
+            # fps = self.env.metadata["render_fps"]
+            # # Keep track of all the rewards and frames
+            # frames.append(self.env.render())
+            # output_directory = Path("outputs/eval/example_pusht")
+            # output_directory.mkdir(parents=True, exist_ok=True)
+            # # Encode all frames into a mp4 video.
+            # video_path = output_directory / "rollout_test.mp4"
+            # imageio.mimsave(str(video_path), np.stack(frames), fps=fps)
+
+            # print(f"Video of the evaluation is available in '{video_path}'.")
+
+            return rewards, infos
+        except Exception as e:
+            print("Exception occurred in run():", e)
+            raise e
 
     @property
     def snapshot(self):
@@ -248,43 +281,3 @@ class Workspace:
                 "Snapshot does not contain the following keys: "
                 f"{set(keys_to_load) - set(loaded_keys)}"
             )
-        
-    def normalized_error(self, pred, true, eps=1e-8):
-        error = torch.norm(pred - true, dim=-1)
-        norm_true = torch.norm(true, dim=-1)
-        return error / (norm_true + eps)
-    
-    def accuracy_from_normalized_error(self, norm_err, threshold=0.1):
-        correct = (norm_err < threshold).float()
-        accuracy = correct.mean().item()
-        return accuracy
-        
-    def evaluate_action_prediction(self):
-        try:
-            tot_acc = 0.0
-            count = 1
-
-            # self.history.clear()
-            num_batches = len(self.test_loader)
-
-            for batch in self.test_loader:
-                observations, true_action = batch['observation.state'], batch['action']
-                pred_action, _ = self._get_action(observations, sample=True)
-
-                # Flatten if needed
-                pred_action_fl = np.asarray(pred_action).flatten()
-                true_action_fl = np.asarray(true_action).flatten()
-
-                # error = np.norm((pred_action - true_action) ** 2)
-                norm_err = self.normalized_error(torch.from_numpy(pred_action_fl), torch.from_numpy(true_action_fl))
-                accuracy = self.accuracy_from_normalized_error(norm_err)
-                # print(f'Accuracy for batch-{count}:', accuracy)
-                count += 1
-                tot_acc += accuracy
-
-            avg_acc = tot_acc / count
-            print(f"\nAverage accuracy over {count} batches: {avg_acc:.4f}")
-            return avg_acc * 100
-        except Exception as e:
-            logging.error(f"Error in evaluate_action_prediction: {e}")
-            raise e

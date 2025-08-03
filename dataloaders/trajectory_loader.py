@@ -314,7 +314,7 @@ class PushTDataset(TensorDataset):
         # sets the delta timestamps for the observations and actions,(window_size - 1) samples from past and 1 current sample
         self.delta_timestamps = {
             "observation.state": [- t / self.fps for t in range(self.window_size)],  # (6, c); c is the dimension of the state space, window size is 6
-            "action": [- t / self.fps for t in range(self.window_size)],  # (6, c); c is the dimension of the action space, window size is 6
+            "action": [t / self.fps for t in range(self.window_size)],  # (6, c); c is the dimension of the action space, window size is 6
         }
         # Load the full dataset
         self.dataset = LeRobotDataset(self.dataset_path, delta_timestamps=self.delta_timestamps)

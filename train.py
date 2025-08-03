@@ -309,7 +309,7 @@ class Workspace:
         self.log_components = OrderedDict()
 
 
-@hydra.main(config_path="configs", config_name="config")
+@hydra.main(config_path="configs", config_name="train_pusht")
 def main(cfg):
     workspace = Workspace(cfg)
     workspace.run()

@@ -10,10 +10,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-from workspaces import base
+from workspaces import base_new
 
 
-class PushTWorkspace(base.Workspace):
+class PushTWorkspace(base_new.Workspace):
     def _setup_plots(self):
         pass
 
