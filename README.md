@@ -174,3 +174,6 @@ All info can be found in the [full report](report.md).
 - [karpathy/MinGPT](https://github.com/karpathy/minGPT): MinGPT implementation and hyperparameters.
 - [facebookresearch/hydra](https://github.com/facebookresearch/hydra): Configuration managements.
 - [psf/black](https://github.com/psf/black): Linting.
+
+### Demo Video
+![Demo-video](plots/demo_robo.gif)

@@ -56,16 +56,19 @@ NOTE: the original git repository for the BeT has been cloned and adapted based 
 - *Hydra* environments need to be taken care while training, as the existing code was fully dependent on this.
 - *Recording video* was a challenged which was later figured out.
 - *Pybullet* issue with MacOS, can happen based on macOS version (didnot fully understand the issue)
-- TorchCodec issue in macOS, resolved with dataset.video_backend = "pyav"
+- *TorchCodec* issue in macOS, resolved with dataset.video_backend = "pyav"
 
 ---
 
 ## 3. Results
 
 **Qualitative Analysis**:
-- The model **successfully commits to a consistent pushing strategy** without switching mid-episode.
-- Handles **both left and right push modes** in multi-modal datasets.
-- Occasional failures happen when **offset corrections are inaccurate** near the goal position.
+- The model works on a basic level with this training to predict the future actions.
+- The model mostly overfits after 20-30 epochs for (bins 32, TF head,Layers=4) and after 15-20 epochs for (bins 64, TF head,Layers=6)
+- Longer window size performs better (WS 14 is better than WS 6) with more parameters.
+- Offset and clustering is not much acurate with this basic training.
+- Robot oscilations are observed (similar values for observations and action predictions), indicates a anomaly.
+- Needs improvement (the clusters, transformer parameters need to be adapted)
 
 **Training Curves**:  
 
@@ -76,9 +79,8 @@ Even though there are multiple cases that have been trained and evaluated, howev
 ![Training vs Validation Loss trade-off for 50 Epochs (but stopped manually at 46th)](plots/eval_train_loss.png)
 
 ### Demo Video for Episode 20 (205628_pusht_eval-case1)
-![Demo](plots/demo_robo.gif)
+![Demo-video](plots/demo_robo.gif)
 <video src="plots/demo_robo.gif" controls width="360"></video>
-https://github.com/Satya1998-debug/behaviour_transformer_policy/blob/master/plots/demo_robo.gif
 
 All the files and configs have been stored in exp_local/ for reference.
 
