@@ -76,8 +76,9 @@ Even though there are multiple cases that have been trained and evaluated, howev
 ![Training vs Validation Loss trade-off for 50 Epochs (but stopped manually at 46th)](plots/eval_train_loss.png)
 
 ### Demo Video for Episode 20 (205628_pusht_eval-case1)
-<video src="plots/rl-video-episode-20.mp4" controls width="640"></video>
-https://github.com/Satya1998-debug/behaviour_transformer_policy/blob/master/plots/rl-video-episode-20.mp4
+![Demo](plots/demo_robo.gif)
+<video src="plots/demo_robo.gif" controls width="640"></video>
+https://github.com/Satya1998-debug/behaviour_transformer_policy/blob/master/plots/demo_robo.gif
 
 All the files and configs have been stored in exp_local/ for reference.
 
