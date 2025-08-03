@@ -9,10 +9,10 @@ defaults:
 lazy_init_models: True
 
 # Dataset details
-train_fraction: 0.95
+train_fraction: 0.95 # train-validation spit (used during training to avoid overfitting)
 batch_size: 64
 num_workers: 8
-window_size: 14
+window_size: 14 # temporal window for delta_timestamps for lerobot, also that will be fed to the model
 
 # Training details
 num_training_epochs: 75
@@ -30,9 +30,9 @@ grad_norm_clip: 1.0
 seed: 42
 
 # Prior training details
-num_prior_epochs: 19
-eval_prior_every: 1
-save_prior_every: 1
+num_prior_epochs: 19 # training time epochs
+eval_prior_every: 1 # for evaluation after every specified number of epochs
+save_prior_every: 1 # for saving the checkpoints after specified num of epochs
 
 # Logging frequency
 eval_every: 1

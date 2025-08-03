@@ -132,6 +132,10 @@ def split_datasets(dataset, train_fraction=0.95, random_seed=42):
     return train_set, val_set
 
 def split_dataset_episodewise_with_frame(full_dataset, train_fraction=0.95):
+    '''
+    Splits the full dataset based on the boundary frame based on training fraction, calcualtes the starting frame
+    from the margin episode and splits the datasets.
+    '''
     if full_dataset is not None:
         tot_eps = full_dataset.num_episodes
 

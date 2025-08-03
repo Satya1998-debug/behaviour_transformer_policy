@@ -16,7 +16,7 @@ def get_pusht_train_val(dataset_path,
         train_set: Training dataset with trajectory slices.
         val_set: Validation dataset with trajectory slices.
     """
-    FPS = 10
+    FPS = 10 # as per lerobot pushT dataset
 
     push_dataset = PushTDataset(train_fraction=train_fraction, 
                                 dataset_path=dataset_path,
@@ -55,9 +55,10 @@ class PushTDataset(TensorDataset):
 
     def setup(self):
         # sets the delta timestamps for the observations and actions,(window_size - 1) samples from past and 1 current sample
+        # get the frames from lerobot
         self.delta_timestamps = {
-            "observation.state": [- t / self.fps for t in range(self.window_size)],  # (6, c); c is the dimension of the state space, window size is 6
-            "action": [t / self.fps for t in range(self.window_size)],  # (6, c); c is the dimension of the action space, window size is 6
+            "observation.state": [- t / self.fps for t in range(self.window_size)],  # (ws, 2); c is the dimension of the state space, window size 
+            "action": [- t / self.fps for t in range(self.window_size)],  # (ws, 2); c is the dimension of the action space, window size
         }
         # Load the full dataset
         self.dataset = LeRobotDataset(self.dataset_path, delta_timestamps=self.delta_timestamps)

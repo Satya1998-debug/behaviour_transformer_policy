@@ -8,12 +8,12 @@ defaults:
 
 lazy_init_models: True
 
-device: mps
+device: mps # can be adapted based on device like cuda
 seed: 42
 load_dir: ${env.load_dir}
 
 # Length of history
-window_size: 14
+window_size: 14 # need to be same exactly as in train_pusht.yaml
 
 # testing details
 train_fraction: 0.95
@@ -21,19 +21,19 @@ test_batch_size: 1
 test_num_workers: 8
 
 # Environment running setup
-num_eval_eps: 206
+num_eval_eps: 206 # for now it is number of episodes in pushT
 action_batch_size: 1
-num_eval_steps: 300
-use_state_prior: True
-enable_offsets: True
+num_eval_steps: 300 # number of evaluation steps for each episode
+use_state_prior: True # flag to use the trained prior
+enable_offsets: True # flag to enable offsets prediction during action reconstruction
 action_update_every: 1
 flatten_obs: False
 enable_render: False
 
 # Plotting setup
-plot_interactions: False
-start_from_seen: False
-record_video: True
+plot_interactions: False # NOT implemented
+start_from_seen: False # NOT implemented
+record_video: True # flag to record videos in the /exp_local directory
 
 # Wandb setup
 project: behavior_transformer_repro_test

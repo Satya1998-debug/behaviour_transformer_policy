@@ -1,19 +1,44 @@
-# Report: Modified Behavior Transformer for PushT Task (LeRobot Framework)
+# Report: Modified Behavior Transformer for PushT Task using LeRobot framework
 
 ## 1. Description of Implementation
-We implemented a **modified Behavior Transformer (BeT)** for robotic manipulation on the **PushT** environment from the LeRobot framework.  
-The model uses a **Transformer-based prior (MinGPT)** combined with a **K-means action discretizer** and **residual offset prediction** to model multi-modal continuous actions.
+I implemented a **modified Behavior Transformer (BeT)** for robotic manipulation on the **PushT** environment from the LeRobot framework. The model uses a **Transformer-based prior (MinGPT)** combined with a **K-means action discretizer** and **residual offset prediction** to model multi-modal continuous actions.
 
 Key elements:
 - **Dataset**: `lerobot/pusht` from Hugging Face Hub.
-- **Data loading**: Used LeRobot’s `LeRobotDataset` API with episode-level train/test split.
+- **Data loading**: Used LeRobot’s `LeRobotDataset` API with episode-level train/test split. (split at 0.95 fraction)
 - **Policy architecture**:  
   - **Encoder**: Identity mapping for state observations.  
   - **Action Autoencoder (AE)**: Discretizes continuous actions into bins (K-means) and predicts residual offsets.  
-  - **Transformer prior**: Learns to predict action bins conditioned on recent history.
+  - **Transformer prior**: Learns to predict action bins conditioned on recent history. The predicted discrete bins are recondtructed to continous actions.
 - **Loss functions**:
-  - Focal loss for categorical bin classification.
-  - Masked MSE loss for residual offsets.
+  - **Focal** loss for categorical bin classification.
+  - **Masked MSE** loss for residual offsets.
+
+### Implementation sequence:
+- During **Configuration** before Training and Evaluation ...
+  - Configuration yaml files inside *Configs*, need to be set (for model, hyper parameters, transformer, bins, epochs, dataset)
+  - *train_pusht.yaml* needs to be set for training related parameters like epochs, window size etc.
+  - *env_vars/env_vars.yaml* needs to be set for dataset path or url
+  - *action_ae/discretizers/k_means_pusht_best.yaml* for bins and ofeset prediction
+  - *env/pusht.yaml* for model save path, input (observations) and output (actions) dimensions, etc.
+  - *state_prior/mingpt_pusht_best.yaml* for the transformer specific config like layers, heads, embeddings, etc.
+  - *eval_pusht.yaml* needs to be set for evaluation related parameters like epochs, window size etc.
+  - set all the wandb related things, by creating an account and configuring it to your local environment (not mandatory but Recommended!)
+
+  - NOTE: LeRobot specific details have already been used in the code directly like delta_timestamps, FPS, etc. The device used her is MacOS MPS for the GPU related training, need to be adapted accordingly for Nvidia based GPUs with CUDA.
+
+- During **Training** ...
+  - need to run the *train.py* after all the needed configuration changes.
+  - the model will stored in ./exp_local folder.
+  - login to Wandb to see the progress of the training.
+
+- During **Evaluation** ...
+  - need to run the *run_on_env.py* after all the needed configuration changes.
+  - the actions and latents will be stored in ./exp_local folder.
+  - the recorded videos are stored every 10th episode inside the same folder.
+  - final Rewards are printed at the end of evaluation
+
+NOTE: the original git repository for the BeT has been cloned and adapted based on the requirements for PushT related framework and datsbase.
 
 ---
 
