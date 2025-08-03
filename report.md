@@ -73,7 +73,8 @@ Even though there are multiple cases that have been trained and evaluated, howev
 
 ![Training and Validation Loss for 50 (but stopped manually at 46th)](plots/vital_shadow.png)
 ![Training and Validation Loss for optimzed 19 Epochs after previous evaluation](plots/silver_star.png)
-![Training vs Validation Loss trade-off for 50 Epochs (but stopped manually at 46th)](plots/rl-video-episode-20.mp4)
+![Training vs Validation Loss trade-off for 50 Epochs (but stopped manually at 46th)](plots/eval_train_loss.png)
+![Demo Video for Episode 20 (205628_pusht_eval-case1)](plots/rl-video-episode-20.mp4)
 
 All the files and configs have been stored in exp_local/ for reference.
 
