@@ -73,43 +73,40 @@ The Modified BeT policy consists of:
 
 ```bash
 .
-├── README.md
-├── enviroment.yml
-├── requirements.txt
-├── bet/
-│   ├── train.py
-│   ├── run_on_env.py
-│   ├── workspaces/
-│   │   └── base.py
-│   ├── models/
-│   │   ├── latent_generators/
-│   │   │   └── mingpt.py
-│   │   ├── action_ae/
-│   │   │   ├── base.py
-│   │   │   └── kmeans.py
-│   │   └── policy.py
-│   ├── datasets/
-│   │   ├── pusht_datamodule.py
-│   │   └── utils.py
-│   ├── losses/
-│   ├── utils/
-│   └── logging.py
-├── configs/
-│   ├── config.yaml
-│   ├── train_pusht.yaml
-│   ├── eval_pusht.yaml
-│   ├── env/
+├── README.md                                      # overview of the project working
+├── enviroment.yml                                 # conda env details
+├── requirements.txt                               # requirements for dependencies (if not used conda env file)
+├── report.md                                      # full report 
+├── train.py                                       # train script for the model
+├── run_on_env.py                                  # evaluation script for the model
+├── configs/                                       # configuration files for the env & model
+│   ├── train_pusht.yaml                               # training parameters and configuration
+│   ├── eval_pusht.yaml                                # testing, evaluation parameters
+│   ├── env/                                           # hydra env config parameters for the project (model specific)
 │   │   └── pusht.yaml
-│   ├── model/
-│   │   └── bet_prior.yaml
-│   └── hydra/
-├── scripts/
-│   └── visualize_dataset.sh
-├── outputs/
-│   ├── train/
-│   └── eval/
-└── third_party/
-    └── relay-policy-learning/
+│   │── env_vars/                                      # hydra env config for dataset
+│   │   └── env_vars.yaml
+│   │── state_prior/                                   # hydra env model-specific config for prior model (mingpt)
+│   │   └── mingpt_pusht_best.yaml
+│   │── encoder/                                       # hydra env for observation encoder
+│   │   └── identity.yaml
+├── models/                                       # models base code
+│   ├── mlp.py
+│   ├── action_ae/
+│   │   └── discretizers                               # discretizer 
+│   │   └── generators                                 # generators
+│   │── latent_generators/                             # latent generators for the latent tensors
+│   │   └── latent_generator.py
+│   │   └── mingpt.py                                  # adapted mingpt used (in paper)
+│   │── libraries/
+│   │   └── mingpt                                     # original mingpt (referenced in the paper)
+│   │   └── loss_fn.py                                 # loss functions
+├── utils/                                        # utilities like train-test splits
+├── workspaces/                                   # workspaces for hydra env that has pushT from lerobot
+│   ├── base.py
+│   └── push_t.py/
+├── dataloaders/                                  # PyTorch dataloaders
+│   └── tracjectory_loader.py
 
 ```
 
