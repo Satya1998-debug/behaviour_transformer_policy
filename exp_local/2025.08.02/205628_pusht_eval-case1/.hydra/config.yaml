@@ -1,0 +1,59 @@
+lazy_init_models: true
+device: mps
+seed: 42
+load_dir: ${env.load_dir}
+window_size: 6
+train_fraction: 0.95
+test_batch_size: 1
+test_num_workers: 8
+num_eval_eps: 206
+action_batch_size: 1
+num_eval_steps: 300
+use_state_prior: true
+enable_offsets: true
+action_update_every: 1
+flatten_obs: false
+enable_render: false
+plot_interactions: false
+start_from_seen: false
+record_video: true
+project: behavior_transformer_repro_test
+experiment: pusht_eval
+encoder:
+  _target_: torch.nn.Identity
+  output_dim: ${env.obs_dim}
+action_ae:
+  _target_: models.action_ae.discretizers.k_means.KMeansDiscretizer
+  num_bins: 32
+  action_dim: ${env.action_dim}
+  device: ${device}
+  predict_offsets: true
+env:
+  name: PushT-v0
+  obs_dim: 2
+  action_dim: 2
+  action_min: null
+  action_max: null
+  load_dir: /Users/satyabrata/Desktop/projects/behaviour_transformer_policy/exp_local/2025.08.01/182203_pusht_train
+  workspace:
+    _target_: workspaces.push_t.PushTWorkspace
+  dataset_fn:
+    _target_: dataloaders.trajectory_loader.get_pusht_train_val
+    dataset_path: ${env_vars.datasets.pusht}
+    window_size: ${window_size}
+state_prior:
+  _target_: models.latent_generators.mingpt.MinGPT
+  discrete_input: false
+  input_dim: ${encoder.output_dim}
+  vocab_size: ???
+  n_layer: 4
+  n_head: 4
+  n_embd: 72
+  block_size: ${window_size}
+  predict_offsets: true
+  offset_loss_scale: 1.0
+  focal_loss_gamma: 2.0
+  action_dim: ${env.action_dim}
+env_vars:
+  datasets:
+    pusht: lerobot/pusht

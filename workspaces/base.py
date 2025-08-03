@@ -68,8 +68,6 @@ class Workspace:
             self.action_ae = hydra.utils.instantiate(
                 self.cfg.action_ae, _recursive_=False
             ).to(self.device)
-            # if self.cfg.data_parallel:
-            #     self.action_ae = GeneratorDataParallel(self.action_ae)
 
     def _init_obs_encoding_net(self):
         if self.obs_encoding_net is None:  # possibly already initialized from snapshot

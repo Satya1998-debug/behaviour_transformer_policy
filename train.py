@@ -111,7 +111,6 @@ class Workspace:
             shuffle=False,
             num_workers=self.cfg.num_workers,
             pin_memory=True if self.device.type == "cuda" else False,  # in MPS, pin memory is not supported
-            # drop_last=True
         )
 
     def train_prior(self):
